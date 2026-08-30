@@ -18,9 +18,18 @@ def error_aproximado(nuevo: float, anterior: float) -> float:
 
 
 def validar_parametros(error_permitido: float, max_iteraciones: int) -> None:
+    """Valida parámetros para criterio de error porcentual."""
     if error_permitido <= 0:
         raise ValueError("El error permitido debe ser mayor que cero.")
     if max_iteraciones <= 0:
+        raise ValueError("El máximo de iteraciones debe ser un entero positivo.")
+
+
+def validar_parametros_fijo(iteraciones_fijas: int, max_iteraciones: int) -> None:
+    """Valida parámetros para criterio de iteraciones fijas."""
+    if iteraciones_fijas <= 0:
+        raise ValueError("El número de iteraciones debe ser un entero positivo.")
+    if max_iteraciones is not None and max_iteraciones <= 0:
         raise ValueError("El máximo de iteraciones debe ser un entero positivo.")
 
 

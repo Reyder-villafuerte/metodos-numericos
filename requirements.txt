@@ -3,5 +3,6 @@ sympy
 pandas
 plotly
 Pillow
+pytesseract
 openpyxl
 pytest
