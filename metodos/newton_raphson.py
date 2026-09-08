@@ -28,7 +28,10 @@ def newton_raphson(funcion, derivada, x0: float, error_permitido: float = None, 
         filas.append({"i": indice, "xi": x, "f(xi)": fx, "f'(xi)": dfx, "xi+1": nuevo, "Ea (%)": error})
         
         if criterio == "error":
-            if fx == 0 or error < error_permitido:
+            if fx == 0:
+                filas[-1]["Ea (%)"] = 0.0
+                return ResultadoMetodo(nuevo, 0.0, filas, True, "Se encontró una raíz exacta.")
+            if error < error_permitido:
                 return ResultadoMetodo(nuevo, error, filas, True, "Se alcanzó el error permitido.")
         
         x = nuevo
@@ -36,4 +39,4 @@ def newton_raphson(funcion, derivada, x0: float, error_permitido: float = None, 
     if criterio == "error":
         return ResultadoMetodo(x, filas[-1]["Ea (%)"], filas, False, "Se alcanzó el máximo de iteraciones.")
     else:
-        return ResultadoMetodo(x, filas[-1]["Ea (%)"], filas, True, f"Se completaron las {iteraciones_fijas} iteraciones solicitadas.")
+        return ResultadoMetodo(x, filas[-1]["Ea (%)"], filas, None, f"Se completaron las {iteraciones_fijas} iteraciones solicitadas.")

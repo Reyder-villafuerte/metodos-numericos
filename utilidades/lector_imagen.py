@@ -1,7 +1,9 @@
-import os
 import re
+import logging
 from pathlib import Path
-import sympy as sp
+
+
+LOGGER = logging.getLogger("metodos_numericos.ocr")
 
 
 # Posibles ubicaciones de Tesseract en Windows
@@ -405,6 +407,7 @@ def extraer_funcion(imagen):
         )
 
     except Exception as error:
+        LOGGER.exception("No fue posible procesar la imagen con OCR: %s", error)
         return (
             None,
             "No fue posible procesar la imagen. "

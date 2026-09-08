@@ -34,6 +34,12 @@ def test_normalizar_pi_simbolo():
     assert "pi" in resultado
 
 
+def test_analizar_pi():
+    """Aceptar pi como constante matemática permitida."""
+    expresion = analizar_funcion("pi*x")
+    assert abs(float(expresion.subs(X, 2)) - 2 * math.pi) < 1e-10
+
+
 def test_normalizar_raiz():
     """Convertir √x en sqrt(x)."""
     resultado = normalizar_expresion("√x")

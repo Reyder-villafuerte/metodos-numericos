@@ -33,4 +33,4 @@ def punto_fijo(funcion, despeje, x0: float, error_permitido: float = None, max_i
     if criterio == "error":
         return ResultadoMetodo(x, filas[-1]["Ea (%)"], filas, False, "Se alcanzó el máximo de iteraciones.")
     else:
-        return ResultadoMetodo(x, filas[-1]["Ea (%)"], filas, True, f"Se completaron las {iteraciones_fijas} iteraciones solicitadas.")
+        return ResultadoMetodo(x, filas[-1]["Ea (%)"], filas, None, f"Se completaron las {iteraciones_fijas} iteraciones solicitadas.")

@@ -1,5 +1,6 @@
 import re
 import math
+import cmath
 
 import sympy as sp
 from sympy.parsing.sympy_parser import (
@@ -28,6 +29,7 @@ FUNCIONES_PERMITIDAS = {
 LOCALES = {
     "x": X,
     "e": sp.E,
+    "pi": sp.pi,
     **FUNCIONES_PERMITIDAS,
 }
 
@@ -204,5 +206,27 @@ def funcion_numerica(expresion):
             raise ValueError(
                 "La función no puede evaluarse en ese valor real."
             ) from exc
+
+    return evaluar
+
+
+def funcion_numerica_compleja(expresion):
+    """Convierte una expresión de SymPy en una función apta para valores complejos."""
+    funciones = {
+        "sin": cmath.sin, "cos": cmath.cos, "tan": cmath.tan,
+        "asin": cmath.asin, "acos": cmath.acos, "atan": cmath.atan,
+        "exp": cmath.exp, "log": cmath.log, "sqrt": cmath.sqrt,
+        "Abs": abs,
+    }
+    evaluador = sp.lambdify(X, expresion, modules=[funciones])
+
+    def evaluar(valor):
+        try:
+            resultado = complex(evaluador(complex(valor)))
+            if not (math.isfinite(resultado.real) and math.isfinite(resultado.imag)):
+                raise ValueError("La evaluación produjo un valor no finito.")
+            return resultado
+        except (ValueError, TypeError, ZeroDivisionError, OverflowError) as exc:
+            raise ValueError("La función no puede evaluarse en ese valor.") from exc
 
     return evaluar

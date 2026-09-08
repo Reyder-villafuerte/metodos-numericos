@@ -105,7 +105,7 @@ def crear_grafica(expresion, raiz, limites, puntos=None):
                 marker={"size": 12, "color": "#dc2626"},
                 hovertemplate="Raíz: x = %{x:.6f}<extra></extra>"
             ))
-    except:
+    except (TypeError, ValueError, OverflowError, ZeroDivisionError):
         figura.add_trace(go.Scatter(
             x=[raiz],
             y=[0],
@@ -156,4 +156,34 @@ def crear_grafica(expresion, raiz, limites, puntos=None):
         ),
     )
     
+    return figura
+
+
+def crear_grafica_compleja(iteraciones, raiz):
+    """Grafica el recorrido de Müller en el plano complejo."""
+    aproximaciones = [complex(fila["x3"]) for fila in iteraciones]
+    raiz_compleja = complex(raiz)
+    figura = go.Figure()
+    if aproximaciones:
+        figura.add_trace(go.Scatter(
+            x=[valor.real for valor in aproximaciones],
+            y=[valor.imag for valor in aproximaciones],
+            mode="lines+markers",
+            name="Aproximaciones",
+            hovertemplate="Re: %{x:.6f}<br>Im: %{y:.6f}<extra></extra>",
+        ))
+    figura.add_trace(go.Scatter(
+        x=[raiz_compleja.real], y=[raiz_compleja.imag], mode="markers",
+        name="Raíz final", marker={"size": 13, "color": "#dc2626"},
+        hovertemplate="Raíz: %{x:.6f} + %{y:.6f}i<extra></extra>",
+    ))
+    figura.add_hline(y=0, line_color="black", line_width=1)
+    figura.add_vline(x=0, line_color="black", line_width=1)
+    figura.update_layout(
+        title="Recorrido de Müller en el plano complejo",
+        xaxis_title="Parte real", yaxis_title="Parte imaginaria",
+        template="plotly_white", height=550,
+        xaxis={"showgrid": True, "gridcolor": "lightgray"},
+        yaxis={"showgrid": True, "gridcolor": "lightgray", "scaleanchor": "x", "scaleratio": 1},
+    )
     return figura

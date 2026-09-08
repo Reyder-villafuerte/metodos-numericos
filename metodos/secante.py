@@ -18,6 +18,14 @@ def secante(funcion, x0: float, x1: float, error_permitido: float = None, max_it
         max_iter = iteraciones_fijas
     
     anterior, actual = valor_real(x0, "x0"), valor_real(x1, "x1")
+    f_anterior = valor_real(funcion(anterior), "f(x0)")
+    if f_anterior == 0:
+        return ResultadoMetodo(anterior, 0.0, [], True, "El primer valor inicial es una raíz.")
+
+    f_actual = valor_real(funcion(actual), "f(x1)")
+    if f_actual == 0:
+        return ResultadoMetodo(actual, 0.0, [], True, "El segundo valor inicial es una raíz.")
+
     filas = []
     for indice in range(1, max_iter + 1):
         f_anterior, f_actual = valor_real(funcion(anterior), "f(xi-1)"), valor_real(funcion(actual), "f(xi)")
@@ -37,4 +45,4 @@ def secante(funcion, x0: float, x1: float, error_permitido: float = None, max_it
     if criterio == "error":
         return ResultadoMetodo(actual, filas[-1]["Ea (%)"], filas, False, "Se alcanzó el máximo de iteraciones.")
     else:
-        return ResultadoMetodo(actual, filas[-1]["Ea (%)"], filas, True, f"Se completaron las {iteraciones_fijas} iteraciones solicitadas.")
+        return ResultadoMetodo(actual, filas[-1]["Ea (%)"], filas, None, f"Se completaron las {iteraciones_fijas} iteraciones solicitadas.")

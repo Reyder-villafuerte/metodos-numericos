@@ -18,6 +18,14 @@ def test_secante():
     assert resultado.convergio and abs(resultado.raiz - 0.567143) < 1e-5
 
 
+def test_secante_reconoce_raiz_inicial():
+    resultado = secante(lambda x: x * (x - 1), 0, 0,
+                        error_permitido=1e-8, max_iteraciones=100, criterio="error")
+    assert resultado.convergio is True
+    assert resultado.raiz == 0
+    assert resultado.error_final == 0
+
+
 def test_biseccion():
     resultado = biseccion(lambda x: x * math.sin(x) - 1, 2, 3, 
                           error_permitido=1e-8, max_iteraciones=100, criterio="error")
@@ -67,3 +75,11 @@ def test_newton_criterio_error_vs_fijo():
     assert len(resultado_fijo.iteraciones) == 4
     # El modo error puede tener menos iteraciones
     assert len(resultado_error.iteraciones) >= 1
+
+
+def test_iteraciones_fijas_no_afirma_convergencia():
+    resultado = punto_fijo(lambda x: x, lambda x: 2 * x, 1,
+                           error_permitido=None, max_iteraciones=None,
+                           criterio="fijo", iteraciones_fijas=4)
+    assert resultado.convergio is None
+    assert resultado.raiz == 16

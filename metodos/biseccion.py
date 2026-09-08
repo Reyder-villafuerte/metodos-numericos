@@ -36,7 +36,10 @@ def biseccion(funcion, a: float, b: float, error_permitido: float = None, max_it
         filas.append({"i": indice, "ai": a, "bi": b, "mi": m, "f(ai)": fa, "f(mi)": fm, "f(bi)": fb, "Ea (%)": error})
         
         if criterio == "error":
-            if fm == 0 or error < error_permitido:
+            if fm == 0:
+                filas[-1]["Ea (%)"] = 0.0
+                return ResultadoMetodo(m, 0.0, filas, True, "Se encontró una raíz exacta.")
+            if error < error_permitido:
                 return ResultadoMetodo(m, error, filas, True, "Se alcanzó el error permitido.")
         
         if fa * fm < 0:
@@ -48,4 +51,4 @@ def biseccion(funcion, a: float, b: float, error_permitido: float = None, max_it
     if criterio == "error":
         return ResultadoMetodo(filas[-1]["mi"], filas[-1]["Ea (%)"], filas, False, "Se alcanzó el máximo de iteraciones.")
     else:
-        return ResultadoMetodo(filas[-1]["mi"], filas[-1]["Ea (%)"], filas, True, f"Se completaron las {iteraciones_fijas} iteraciones solicitadas.")
+        return ResultadoMetodo(filas[-1]["mi"], filas[-1]["Ea (%)"], filas, None, f"Se completaron las {iteraciones_fijas} iteraciones solicitadas.")

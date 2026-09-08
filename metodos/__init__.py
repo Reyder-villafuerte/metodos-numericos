@@ -4,10 +4,10 @@ from typing import Any
 
 @dataclass
 class ResultadoMetodo:
-    raiz: float
+    raiz: float | complex
     error_final: float
     iteraciones: list[dict[str, Any]]
-    convergio: bool
+    convergio: bool | None
     motivo: str
 
 

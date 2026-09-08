@@ -1,6 +1,8 @@
 # Software de Métodos Numéricos
 
-Aplicación universitaria interactiva para aproximar raíces de funciones reales usando cinco métodos numéricos clásicos: Bisección, Regla falsa, Punto fijo, Newton-Raphson y Secante. Incluye visualización interactiva, tablas detalladas y exportación a Excel.
+Aplicación universitaria interactiva para aproximar raíces usando seis métodos numéricos: Bisección, Regla falsa, Punto fijo, Newton-Raphson, Secante y Müller. Incluye resultados reales y complejos, visualización interactiva, tablas detalladas y reportes académicos.
+
+La versión 2.0 incorpora también el método de Müller para raíces reales y complejas, una interfaz profesional por pestañas, ejemplos precargados, historial de sesión y exportación a Excel, PDF y CSV.
 
 ## Características Principales
 
@@ -81,6 +83,12 @@ pip install -r requirements.txt
 
 # Ejecutar aplicación
 streamlit run app.py
+```
+
+Para instalar también las herramientas de pruebas:
+
+```powershell
+pip install -r requirements-dev.txt
 ```
 
 La aplicación estará disponible en `http://localhost:8501`

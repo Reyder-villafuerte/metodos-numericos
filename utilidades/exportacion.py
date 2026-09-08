@@ -1,8 +1,12 @@
 from io import BytesIO
+import logging
 import pandas as pd
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Font, PatternFill, Alignment
 import math
 import sympy as sp
+
+
+LOGGER = logging.getLogger("metodos_numericos.exportacion")
 
 
 def _convertir_valor(valor):
@@ -16,30 +20,44 @@ def _convertir_valor(valor):
     if isinstance(valor, sp.Basic):
         return str(valor)
     if isinstance(valor, complex):
-        return str(valor)
+        signo = "+" if valor.imag >= 0 else "-"
+        return f"{valor.real:.10f} {signo} {abs(valor.imag):.10f}i"
     return valor
 
 
-def crear_excel(titulo, funcion, metodo, parametros, error_permitido, raiz, error_final, iteraciones):
+def crear_excel(titulo, funcion, metodo, parametros, error_permitido, raiz, error_final, iteraciones,
+                criterio=None, estado=None):
     """Crea un archivo Excel con resultados de métodos numéricos."""
     salida = BytesIO()
     
     try:
         # Preparar datos del resumen
-        raiz_conv = float(raiz) if raiz is not None else 0.0
+        raiz_conv = _convertir_valor(raiz) if raiz is not None else 0.0
         error_final_conv = float(error_final) if error_final is not None else 0.0
         error_permitido_conv = float(error_permitido) if error_permitido is not None else 0.0
         
         # Crear DataFrame del resumen
+        nombre_valor_criterio = "Iteraciones solicitadas" if criterio and "fijo" in criterio.lower() else "Error permitido (%)"
         resumen_data = [
             {"Descripción": "Título", "Valor": titulo},
             {"Descripción": "Función original", "Valor": str(funcion)},
             {"Descripción": "Método", "Valor": metodo},
-            {"Descripción": "Error permitido (%)", "Valor": error_permitido_conv},
+            {"Descripción": "Criterio de detención", "Valor": criterio or "Error permitido"},
+            {"Descripción": nombre_valor_criterio, "Valor": error_permitido_conv},
             {"Descripción": "Raíz aproximada", "Valor": raiz_conv},
             {"Descripción": "Error final (%)", "Valor": error_final_conv},
+            {"Descripción": "Estado", "Valor": estado or "No especificado"},
             {"Descripción": "Número de iteraciones", "Valor": len(iteraciones) if iteraciones else 0},
         ]
+        if isinstance(parametros, dict):
+            filas_parametros = [
+                {"Descripción": clave, "Valor": _convertir_valor(valor)}
+                for clave, valor in parametros.items()
+                if clave in {"a", "b", "x0", "x1", "x2"}
+            ]
+            resumen_data[3:3] = filas_parametros
+        else:
+            resumen_data.insert(3, {"Descripción": "Parámetros iniciales", "Valor": str(parametros)})
         
         # Preparar datos de iteraciones
         iteraciones_conv = []
@@ -66,7 +84,7 @@ def crear_excel(titulo, funcion, metodo, parametros, error_permitido, raiz, erro
                 {"Sección": "Método", "Detalle": metodo},
                 {"Sección": "Función", "Detalle": str(funcion)},
                 {"Sección": "Criterio de parada", "Detalle": f"Error permitido: {error_permitido_conv}%"},
-                {"Sección": "Raíz encontrada", "Detalle": f"{raiz_conv:.10f}"},
+                {"Sección": "Raíz encontrada", "Detalle": str(raiz_conv)},
                 {"Sección": "Error final", "Detalle": f"{error_final_conv}%"},
                 {"Sección": "Interpretación", "Detalle": "La raíz es el valor de x donde f(x) = 0 o está cercano a él."},
             ]
@@ -95,6 +113,5 @@ def crear_excel(titulo, funcion, metodo, parametros, error_permitido, raiz, erro
         return salida.getvalue()
     
     except Exception as exc:
-        # Log del error para debugging
-        print(f"Error al crear Excel: {exc}", flush=True)
+        LOGGER.exception("Error al crear el archivo Excel: %s", exc)
         raise ValueError(f"Error al preparar el archivo Excel: {str(exc)}") from exc
