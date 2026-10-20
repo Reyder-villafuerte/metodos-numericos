@@ -1,0 +1,8 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tmp/
+u2_s6_gtygp_jokpxqqfim.pdf
+null
