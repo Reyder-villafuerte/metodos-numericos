@@ -25,6 +25,7 @@ from .metodos import (
 from .componentes_resultados import (
     mostrar_comprobacion_detallada,
     mostrar_graficas,
+    mostrar_graficas_newton_sistema,
     mostrar_matriz,
     mostrar_resultados_completos,
     mostrar_resumen,
@@ -286,6 +287,9 @@ def _mostrar_metodo_no_lineal(metodo: str) -> None:
             else:
                 resultado = resolver_newton_raphson(funciones, [x0, y0], tolerancia=tolerancia, max_iter=int(max_iter))
             st.session_state.u2_nl_resultado = resultado
+            if metodo == "Newton-Raphson para sistemas":
+                st.session_state.u2_newton_funciones = funciones_bivariadas
+                st.session_state.u2_newton_textos = (f1, f2)
             st.session_state.pop("u2_error", None)
         except (ValueError, TypeError, ErrorSistemaNoLineal, sp.SympifyError) as exc:
             st.session_state.pop("u2_nl_resultado", None)
@@ -294,10 +298,130 @@ def _mostrar_metodo_no_lineal(metodo: str) -> None:
         st.error(st.session_state.u2_error)
     if st.session_state.get("u2_nl_resultado") is not None:
         resultado = st.session_state.u2_nl_resultado
-        st.success("Convergió" if resultado.convergio else "No convergió dentro del máximo indicado.")
-        st.metric("Error final", f"{resultado.error:.6e}")
-        st.latex(f"x={latex_matriz(resultado.x, 8)}")
-        st.dataframe(pd.DataFrame(resultado.historial), width="stretch")
+        if metodo == "Newton-Raphson para sistemas":
+            _mostrar_resultado_newton_sistema(resultado)
+        else:
+            st.success("Convergió" if resultado.convergio else "No convergió dentro del máximo indicado.")
+            st.metric("Error final", f"{resultado.error:.6e}")
+            st.latex(f"x={latex_matriz(resultado.x, 8)}")
+            st.dataframe(pd.DataFrame(resultado.historial), width="stretch")
+
+
+def _mostrar_resultado_newton_sistema(resultado) -> None:
+    """Presentación académica completa exclusiva para Newton-Raphson no lineal."""
+    st.markdown("### Resultados: Newton-Raphson para sistemas")
+    if resultado.convergio:
+        st.success("El método convergió con los criterios de paso y residuo.")
+    else:
+        st.warning("No convergió dentro del máximo de iteraciones indicado.")
+    funciones = st.session_state.get("u2_newton_funciones")
+    textos = st.session_state.get("u2_newton_textos", ("F₁(x,y)", "F₂(x,y)"))
+    tabs = st.tabs([
+        "Resumen",
+        "Resultado",
+        "Matrices y operaciones",
+        "Iteraciones",
+        "Explicación paso a paso",
+        "Comprobación",
+        "Gráficas",
+    ])
+    with tabs[0]:
+        columnas = st.columns(4)
+        columnas[0].metric("Estado", "Convergió" if resultado.convergio else "Pendiente")
+        columnas[1].metric("Iteraciones", resultado.iteraciones)
+        columnas[2].metric("Error final ‖Δx‖∞", f"{resultado.error:.6e}")
+        columnas[3].metric("Residuo final ‖F(x)‖∞", f"{resultado.residuo:.6e}")
+        st.markdown("#### Sistema resuelto")
+        st.latex(rf"F_1(x,y)={textos[0]}")
+        st.latex(rf"F_2(x,y)={textos[1]}")
+        st.markdown("#### Solución aproximada")
+        st.latex(rf"x^*={latex_matriz(resultado.x, 10)}")
+        st.info(
+            "Newton busca simultáneamente el punto donde ambas funciones valen cero. "
+            "La convergencia se acepta cuando el tamaño del paso y el residuo son menores "
+            "que la tolerancia.",
+            icon=":material/school:",
+        )
+    with tabs[1]:
+        st.markdown("#### Vector solución")
+        st.latex(rf"x^*=\begin{{bmatrix}}x\\y\end{{bmatrix}}={latex_matriz(resultado.x, 12)}")
+        st.dataframe(
+            pd.DataFrame({
+                "Incógnita": ["x", "y"],
+                "Valor aproximado": np.asarray(resultado.x, dtype=float),
+            }),
+            hide_index=True,
+            width="stretch",
+        )
+        st.markdown("#### Indicadores numéricos")
+        st.write(
+            "La solución es aceptable cuando ambos indicadores son pequeños, "
+            "no solamente cuando cambia poco el vector."
+        )
+        st.dataframe(pd.DataFrame([{
+            "Iteraciones": resultado.iteraciones,
+            "‖Δx‖∞": resultado.error,
+            "‖F(x)‖∞": resultado.residuo,
+            "Convergió": resultado.convergio,
+        }]), hide_index=True, width="stretch")
+    with tabs[2]:
+        st.markdown("#### Jacobiano y operación de cada iteración")
+        for fila in resultado.historial:
+            with st.expander(f"Iteración {fila['iteracion']} · x=({fila['x'][0]:.8g}, {fila['x'][1]:.8g})"):
+                st.latex(rf"x^{{({fila['iteracion']})}}={latex_matriz(fila['x'], 10)}")
+                st.latex(rf"\|\Delta x\|_\infty={fila['error']:.8e}")
+                st.latex(rf"\|F(x)\|_\infty={fila['residuo']:.8e}")
+                if "jacobiano" in fila:
+                    st.latex(rf"J(x^{{({fila['iteracion']-1})}})={latex_matriz(fila['jacobiano'], 8)}")
+                if "funcion" in fila:
+                    st.latex(rf"F(x^{{({fila['iteracion']-1})}})={latex_matriz(fila['funcion'], 8)}")
+                if "delta" in fila:
+                    st.latex(rf"\Delta x={latex_matriz(fila['delta'], 8)}")
+        st.caption("El sistema lineal J·Δx=−F se resuelve en cada iteración; no se calcula una inversa explícita.")
+    with tabs[3]:
+        filas = []
+        x_inicial = (
+            np.asarray(resultado.x_inicial, dtype=float)
+            if resultado.x_inicial is not None
+            else (np.asarray(resultado.historial[0]["x"], dtype=float) if resultado.historial else resultado.x)
+        )
+        filas.append({"Iteración": 0, "x": x_inicial[0], "y": x_inicial[1], "‖Δx‖∞": np.nan, "‖F(x)‖∞": np.nan})
+        for fila in resultado.historial:
+            filas.append({
+                "Iteración": fila["iteracion"],
+                "x": fila["x"][0],
+                "y": fila["x"][1],
+                "‖Δx‖∞": fila["error"],
+                "‖F(x)‖∞": fila["residuo"],
+            })
+        st.dataframe(pd.DataFrame(filas), hide_index=True, width="stretch")
+    with tabs[4]:
+        st.markdown("#### 1. Evaluar el sistema y el Jacobiano")
+        st.latex(r"J(x^{(k)})=\begin{bmatrix}\frac{\partial F_1}{\partial x}&\frac{\partial F_1}{\partial y}\\\frac{\partial F_2}{\partial x}&\frac{\partial F_2}{\partial y}\end{bmatrix}")
+        st.markdown("#### 2. Calcular la corrección")
+        st.latex(r"J(x^{(k)})\Delta x=-F(x^{(k)})")
+        st.markdown("#### 3. Actualizar la aproximación")
+        st.latex(r"x^{(k+1)}=x^{(k)}+\Delta x")
+        for fila in resultado.historial:
+            st.markdown(f"**Iteración {fila['iteracion']}**")
+            st.write(
+                f"Se obtiene x=({fila['x'][0]:.10g}, {fila['x'][1]:.10g}), "
+                f"con paso ‖Δx‖∞={fila['error']:.4e} y residuo ‖F(x)‖∞={fila['residuo']:.4e}."
+            )
+    with tabs[5]:
+        st.markdown("#### Sustitución de la solución en cada ecuación")
+        if funciones:
+            valores = np.asarray([funcion(*np.asarray(resultado.x, dtype=float)) for funcion in funciones], dtype=float)
+            for indice, (texto, valor) in enumerate(zip(textos, valores), start=1):
+                st.markdown(f"**Ecuación {indice}**")
+                st.latex(rf"{texto}\ \Longrightarrow\ F_{indice}(x^*)={valor:.12e}")
+        st.metric("Norma del residuo", f"{resultado.residuo:.12e}")
+        st.caption("Un residuo cercano a cero confirma que la aproximación satisface numéricamente las dos ecuaciones.")
+    with tabs[6]:
+        if funciones:
+            mostrar_graficas_newton_sistema(funciones, resultado)
+        else:
+            st.warning("No hay funciones disponibles para construir la gráfica.")
 
 
 def _mostrar_interpolacion_newton() -> None:

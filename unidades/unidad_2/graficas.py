@@ -251,6 +251,125 @@ def crear_grafica_componentes(vector: Any, titulo: str, nombre_eje: str) -> go.F
     return figura
 
 
+def crear_graficas_newton_sistema(
+    funciones: Any,
+    historial: list[dict],
+    solucion: Any,
+    *,
+    amplitud: float = 1.5,
+    puntos: int = 90,
+) -> tuple[go.Figure, go.Figure, go.Figure]:
+    """Construye el mapa de curvas, la trayectoria y la evolución del método."""
+
+    if len(funciones) != 2 or not historial:
+        raise ValueError("Newton para sistemas requiere dos funciones y un historial.")
+    aproximaciones = np.asarray(
+        [np.asarray(getattr(solucion, "x_inicial", None), dtype=float)]
+        + [fila["x"] for fila in historial],
+        dtype=float,
+    ) if getattr(solucion, "x_inicial", None) is not None else np.asarray(
+        [fila["x"] for fila in historial], dtype=float
+    )
+    punto_final = np.asarray(solucion, dtype=float).reshape(2)
+    centro = aproximaciones[-1]
+    escala = max(float(amplitud), float(np.max(np.abs(aproximaciones - centro))) + 0.75)
+    xs = np.linspace(centro[0] - escala, centro[0] + escala, puntos)
+    ys = np.linspace(centro[1] - escala, centro[1] + escala, puntos)
+    malla_x, malla_y = np.meshgrid(xs, ys)
+
+    figura_curvas = go.Figure()
+    for indice, funcion in enumerate(funciones, start=1):
+        valores = np.asarray(funcion(malla_x, malla_y), dtype=float)
+        valores = valores.reshape(malla_x.shape)
+        figura_curvas.add_trace(
+            go.Contour(
+                x=xs,
+                y=ys,
+                z=valores,
+                contours={"start": 0, "end": 0, "size": 1},
+                line={"color": COLORES[indice - 1], "width": 4},
+                showscale=False,
+                name=f"F{indice}(x,y)=0",
+                hovertemplate=f"F{indice}=0<br>x=%{{x:.6g}}<br>y=%{{y:.6g}}<extra></extra>",
+            )
+        )
+    figura_curvas.add_trace(
+        go.Scatter(
+            x=aproximaciones[:, 0],
+            y=aproximaciones[:, 1],
+            mode="lines+markers",
+            name="Trayectoria de Newton",
+            line={"color": COLOR_SOLUCION, "width": 2, "dash": "dot"},
+            marker={"size": 8, "color": COLOR_SOLUCION},
+            customdata=np.arange(1, len(aproximaciones) + 1),
+            hovertemplate="Iteración %{customdata}<br>x=%{x:.10g}<br>y=%{y:.10g}<extra></extra>",
+        )
+    )
+    figura_curvas.add_trace(
+        go.Scatter(
+            x=[punto_final[0]],
+            y=[punto_final[1]],
+            mode="markers",
+            name="Solución final",
+            marker={"size": 15, "color": "#fef08a", "symbol": "diamond"},
+            hovertemplate="Solución<br>x=%{x:.12g}<br>y=%{y:.12g}<extra></extra>",
+        )
+    )
+    figura_curvas.update_layout(
+        title="Curvas F₁=0 y F₂=0 con trayectoria de Newton",
+        xaxis_title="x",
+        yaxis_title="y",
+        template=PLANTILLA,
+        height=620,
+        hovermode="closest",
+        legend={"orientation": "h", "y": 1.08},
+        margin={"l": 45, "r": 25, "t": 90, "b": 45},
+    )
+    figura_curvas.update_xaxes(zeroline=True, zerolinecolor="#64748b", scaleanchor="y", scaleratio=1)
+    figura_curvas.update_yaxes(zeroline=True, zerolinecolor="#64748b")
+
+    iteraciones = np.arange(1, len(historial) + 1)
+    errores = np.asarray([fila["error"] for fila in historial], dtype=float)
+    residuos = np.asarray([fila["residuo"] for fila in historial], dtype=float)
+    figura_convergencia = go.Figure()
+    figura_convergencia.add_trace(go.Scatter(
+        x=iteraciones, y=errores, mode="lines+markers", name="‖Δx‖∞",
+        line={"color": "#22d3ee", "width": 3},
+    ))
+    figura_convergencia.add_trace(go.Scatter(
+        x=iteraciones, y=residuos, mode="lines+markers", name="‖F(x)‖∞",
+        line={"color": "#f59e0b", "width": 3},
+    ))
+    figura_convergencia.update_layout(
+        title="Convergencia: error de paso y residuo",
+        xaxis_title="Iteración",
+        yaxis_title="Magnitud (escala logarítmica)",
+        template=PLANTILLA,
+        height=470,
+        legend={"orientation": "h", "y": 1.1},
+    )
+    figura_convergencia.update_yaxes(type="log", rangemode="tozero")
+
+    figura_componentes = go.Figure()
+    for indice in range(2):
+        figura_componentes.add_trace(go.Scatter(
+            x=np.arange(len(aproximaciones)),
+            y=aproximaciones[:, indice],
+            mode="lines+markers",
+            name=f"x{indice + 1}",
+            line={"color": COLORES[indice], "width": 3},
+        ))
+    figura_componentes.update_layout(
+        title="Evolución de las incógnitas",
+        xaxis_title="Iteración (incluye x⁽⁰⁾)",
+        yaxis_title="Valor aproximado",
+        template=PLANTILLA,
+        height=470,
+        legend={"orientation": "h", "y": 1.1},
+    )
+    return figura_curvas, figura_convergencia, figura_componentes
+
+
 def crear_grafica_residuos(residuo: Any) -> go.Figure:
     datos = np.asarray(residuo, dtype=float).reshape(-1)
     figura = go.Figure(

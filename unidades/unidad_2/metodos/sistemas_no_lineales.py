@@ -20,6 +20,7 @@ class ResultadoSistemaNoLineal:
     error: float
     residuo: float
     historial: list[dict]
+    x_inicial: np.ndarray | None = None
 
 
 def _vectorizar(funciones: Sequence[Callable], x):
@@ -87,6 +88,7 @@ def resolver_newton_raphson(funciones, x0, jacobiano=None, tolerancia=1e-10,
                             max_iter=50, paso_derivada=1e-6):
     """Resuelve F(x)=0 con Jacobiano analítico o diferencias centradas."""
     x = _validar(funciones, x0, tolerancia, max_iter)
+    x_inicial = x.copy()
     historial = []
     for k in range(1, max_iter + 1):
         J, F = (np.asarray(jacobiano(x), dtype=float), _vectorizar(funciones, x)) if jacobiano else _jacobiano_numerico(funciones, x, paso_derivada)
@@ -99,12 +101,22 @@ def resolver_newton_raphson(funciones, x0, jacobiano=None, tolerancia=1e-10,
         nuevo = x + delta
         error = float(np.linalg.norm(delta, ord=np.inf))
         residuo = float(np.linalg.norm(_vectorizar(funciones, nuevo), ord=np.inf))
-        historial.append({"iteracion": k, "x": nuevo.copy(), "error": error, "residuo": residuo})
+        historial.append({
+            "iteracion": k,
+            "x": nuevo.copy(),
+            "error": error,
+            "residuo": residuo,
+            "jacobiano": J.copy(),
+            "funcion": F.copy(),
+            "delta": delta.copy(),
+        })
         if max(error, residuo) <= tolerancia:
-            return ResultadoSistemaNoLineal("Newton-Raphson", nuevo, k, True, error, residuo, historial)
+            return ResultadoSistemaNoLineal(
+                "Newton-Raphson", nuevo, k, True, error, residuo, historial, x_inicial
+            )
         x = nuevo
     return ResultadoSistemaNoLineal("Newton-Raphson", x, max_iter, False,
-                                    historial[-1]["error"], historial[-1]["residuo"], historial)
+                                    historial[-1]["error"], historial[-1]["residuo"], historial, x_inicial)
 
 
 jacobi_nolineal = resolver_jacobi

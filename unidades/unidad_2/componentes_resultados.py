@@ -254,9 +254,47 @@ def mostrar_graficas(resultado: Any) -> None:
         )
 
 
+def mostrar_graficas_newton_sistema(funciones: Any, resultado: Any) -> None:
+    """Muestra geometría, trayectoria y convergencia de Newton para dos variables."""
+    from .graficas import crear_graficas_newton_sistema
+
+    figuras = crear_graficas_newton_sistema(
+        funciones,
+        resultado.historial,
+        resultado.x,
+    )
+    st.info(
+        "Las curvas de nivel F₁=0 y F₂=0 se cortan en la solución. "
+        "La línea punteada muestra cómo Newton se desplaza desde x⁽⁰⁾ hasta la raíz.",
+        icon=":material/insights:",
+    )
+    st.plotly_chart(
+        figuras[0],
+        width="stretch",
+        key="u2_newton_grafica_curvas",
+        config={"displaylogo": False, "scrollZoom": True, "responsive": True},
+    )
+    columnas = st.columns(2)
+    with columnas[0]:
+        st.plotly_chart(
+            figuras[1],
+            width="stretch",
+            key="u2_newton_grafica_convergencia",
+            config={"displaylogo": False, "scrollZoom": True, "responsive": True},
+        )
+    with columnas[1]:
+        st.plotly_chart(
+            figuras[2],
+            width="stretch",
+            key="u2_newton_grafica_componentes",
+            config={"displaylogo": False, "scrollZoom": True, "responsive": True},
+        )
+
+
 __all__ = [
     "mostrar_comprobacion_detallada",
     "mostrar_graficas",
+    "mostrar_graficas_newton_sistema",
     "mostrar_matriz",
     "mostrar_resultados_completos",
     "mostrar_resumen",
